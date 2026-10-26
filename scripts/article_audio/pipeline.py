@@ -201,6 +201,7 @@ def run_pipeline(
             speed=settings.synthesis.speed,
             sample_rate=settings.synthesis.sample_rate,
             format=settings.synthesis.format,
+            audio_config=settings.synthesis.audio_config,
         )
         digest = _request_digest(request)
         filename = f"segment-{segment.index:04d}.{settings.synthesis.format}"

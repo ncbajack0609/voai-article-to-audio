@@ -6,7 +6,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Mapping, Protocol
 
 from .config import ProviderConfig
@@ -29,6 +29,7 @@ class SynthesisRequest:
     speed: float
     sample_rate: int
     format: str
+    audio_config: Mapping[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,8 @@ class VoAIDialogueAdapter(_JsonAdapter):
     default_endpoint = "/TTS/generate-dialogue"
 
     def synthesize(self, request: SynthesisRequest) -> bytes:
+        if len(request.text) > 1000:
+            raise ProviderError("VoAI dialogue text exceeds 1000 characters; shorten the source or segment")
         payload = {
             "input": {
                 "dialogue": [
@@ -129,7 +132,7 @@ class VoAIDialogueAdapter(_JsonAdapter):
                             "style": request.style,
                             "version": request.model,
                         },
-                        "audio_config": {"speed": request.speed},
+                        "audio_config": {**request.audio_config, "speed": request.speed},
                     }
                 ]
             }

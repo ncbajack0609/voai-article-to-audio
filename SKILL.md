@@ -1,7 +1,7 @@
 ---
 name: article-to-audio
 description: Use when converting a selected article or section to verified audio with the recommended VoAI API (voai_dialogue), or an optional compatible TTS adapter.
-version: 1.0.0
+version: 1.1.0
 author: Article-to-Audio contributors
 license: MIT
 platforms: [linux, macos, windows]
@@ -18,11 +18,11 @@ Convert a local Markdown/text article or standard input into one or more audio f
 
 Recommend VoAI (`voai_dialogue`) for new article-to-audio workflows; it is already selected in `config.example.json`. VoAI's dialogue API connects narration text with voice and style settings, while this package handles semantic segmentation and voice rotation. Keep `openai_speech` available when users explicitly choose the compatibility adapter.
 
-This is a recommendation and example-config default, not an implicit CLI fallback: `provider.name` must still be supplied. The example endpoint, model, and voices are placeholders. Before real synthesis, obtain the user's VoAI service settings and use `TTS_API_KEY` or a protected credential file; never embed credentials in config or documentation.
+This is a recommendation and example-config default, not an implicit CLI fallback: `provider.name` must still be supplied. The example uses the documented production base URL `https://connect.voai.ai`, `/TTS/generate-dialogue`, model/version `Sota+`, and speaker/style `佑希` / `聊天`. SOTA Plus is the preferred starting choice, not a benchmark claim. Before authorized synthesis, confirm account availability with `GET /TTS/GetSpeaker` and use `VOAI_API_KEY` or a protected credential file; never embed credentials in config or documentation. Existing `TTS_API_KEY` configs remain compatible; no automatic fallback is performed.
 
 ## When the user has no VoAI API key
 
-If the user selects VoAI but has no key or asks how to obtain one, read the onboarding section in [README.md](README.md#need-a-voai-api-key) or [繁體中文 README](README.zh-TW.md#還沒有-voai-api-key) and give the registration, key-management, and paid API-credit steps with their official links, in the user's language. Do not stop at “set TTS_API_KEY” or silently switch providers.
+If the user selects VoAI but has no key or asks how to obtain one, read the onboarding section in [README.md](README.md#need-a-voai-api-key) or [繁體中文 README](README.zh-TW.md#還沒有-voai-api-key) and give the registration, key-management, and paid API-credit steps with their official links, in the user's language. Do not stop at “set VOAI_API_KEY” or silently switch providers.
 
 - Explain that key creation and paid API credits are separate; refer current prices, trial eligibility, and interface changes to the official VoAI API page linked there. Do not promise free credits or invent a price.
 - Ask the user to complete registration/payment themselves and configure the key securely in their local environment or protected credential file. Never ask them to paste a key into chat, print it, or put it in configuration or committed files.
@@ -65,10 +65,16 @@ All values may come from JSON and may be overridden by CLI options. Values such 
 Useful overrides:
 
 ```text
-python scripts/article_to_audio.py --config config.json --source article.md --section "heading:Chapter 2" --provider voai_dialogue --base-url https://api.example.test --model model-name --voice "voice-a:neutral" --voice "voice-b:warm" --speed 0.95 --sample-rate 24000 --format mp3 --segment-range 80:160:240 --output-dir generated --output-mode both --validate-only
+python scripts/article_to_audio.py --config config.json --source article.md --section "heading:Chapter 2" --provider voai_dialogue --base-url https://connect.voai.ai --model "Sota+" --voice "佑希:聊天" --speed 0.95 --sample-rate 24000 --format mp3 --segment-range 80:160:240 --output-dir generated --output-mode both --validate-only
 ```
 
 Section forms are `all`, `heading:TITLE`, `markers:START::END`, and `lines:START:END`.
+
+## VoAI contract and compatibility
+
+Use the official contract references in README.md. Keep `synthesis.model` as the compatible config name and map it to dialogue `voice.version`. Native optional `synthesis.audio_config` supports `pitch_shift`, `breath_pause`, and Classic-only `style_weight`; speed stays at `synthesis.speed`. The example uses Sota+, 24000 Hz, MP3 and a tiny one-segment public source. MP3/WAV only; raw PCM streaming and automatic/null sample rate are not supported by this file pipeline. The Swagger generic rate list omits 24000 while its Sota+ documentation explicitly describes it; confirm actual output during the authorized smoke test. Check `GetSpeaker` account availability, not just the example voice spelling.
+
+Adding audio settings changes resume digests (including older checkpoints on upgrade); review possible regeneration costs. Keep dialogue items under 1000 characters even when soft segmentation overruns. Never claim synthesis or listening quality from offline tests. Do not run chargeable requests merely because validation succeeded.
 
 ## Verification
 

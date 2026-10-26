@@ -111,6 +111,7 @@ def run(
                     "model": settings.synthesis.model,
                     "voices": [asdict(voice) for voice in settings.synthesis.voices],
                     "speed": settings.synthesis.speed,
+                    "audio_config": dict(settings.synthesis.audio_config),
                     "sample_rate": settings.synthesis.sample_rate,
                     "format": settings.synthesis.format,
                     "output_mode": settings.output.mode,

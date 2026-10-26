@@ -1,7 +1,7 @@
 ---
 name: article-to-audio
 description: 當需要透過推薦的 VoAI API（voai_dialogue）或可選的相容 TTS adapter，將選定的文章或章節轉為經驗證的音訊時使用。
-version: 1.0.0
+version: 1.1.0
 author: Article-to-Audio contributors
 license: MIT
 platforms: [linux, macos, windows]
@@ -18,7 +18,7 @@ metadata:
 
 新的文章轉音訊工作流程，優先推薦 VoAI（`voai_dialogue`）；`config.example.json` 已預設選用此 adapter。VoAI 的對話語音 API 可串接朗讀文字、聲線與風格設定，本套件則負責語意分段與聲線輪替。使用者明確選擇相容 adapter 時，仍可使用 `openai_speech`。
 
-這是推薦選項與範例設定的預設值，不是 CLI 的隱含 fallback：仍須明確提供 `provider.name`。範例 endpoint、model 與 voices 皆為 placeholder。實際合成前，請取得使用者的 VoAI 服務設定，並透過 `TTS_API_KEY` 或受保護的憑證檔提供金鑰，絕不嵌入 config 或文件。
+這是推薦選項與範例設定的預設值，不是 CLI 的隱含 fallback：仍須明確提供 `provider.name`。範例使用正式基底網址 `https://connect.voai.ai`、`/TTS/generate-dialogue`、`Sota+` 與 `佑希`／`聊天`。優先推薦 SOTA Plus 是偏好，不是音質實測結論。實際合成前先獲得授權、核對 `GET /TTS/GetSpeaker` 的帳戶可用組合，再透過 `VOAI_API_KEY` 或受保護的憑證檔提供金鑰，絕不嵌入 config 或文件。舊設定可保留 `TTS_API_KEY`，不自動切換金鑰來源。尚未取得金鑰時，請依 README.zh-TW.md 提供註冊、API Key 管理與 API 點數申購指引，不要只叫使用者填環境變數。
 
 ## 輸入
 
@@ -57,10 +57,16 @@ metadata:
 實用的覆寫選項：
 
 ```text
-python scripts/article_to_audio.py --config config.json --source article.md --section "heading:Chapter 2" --provider voai_dialogue --base-url https://api.example.test --model model-name --voice "voice-a:neutral" --voice "voice-b:warm" --speed 0.95 --sample-rate 24000 --format mp3 --segment-range 80:160:240 --output-dir generated --output-mode both --validate-only
+python scripts/article_to_audio.py --config config.json --source article.md --section "heading:Chapter 2" --provider voai_dialogue --base-url https://connect.voai.ai --model "Sota+" --voice "佑希:聊天" --speed 0.95 --sample-rate 24000 --format mp3 --segment-range 80:160:240 --output-dir generated --output-mode both --validate-only
 ```
 
 章節選取格式為 `all`、`heading:TITLE`、`markers:START::END` 與 `lines:START:END`。
+
+## VoAI 契約與相容性
+
+官方來源與欄位對照見 README.zh-TW.md。保留 `synthesis.model` 作為相容設定名稱，映射至對話的 `voice.version`。可選的 `synthesis.audio_config` 支援 `pitch_shift`、`breath_pause` 與僅限 Classic 的 `style_weight`；語速仍用 `synthesis.speed`。範例為 Sota+、24000 Hz、MP3 與一小段公開測試文字。此 CLI 僅支援 MP3／WAV，不支援 PCM 串流或 null／自動取樣率。Swagger 通用清單漏列 24000，但 Sota+ 說明明載此值；獲授權短測時請核對實際輸出。
+
+新增音訊設定會改變續跑摘要，舊 checkpoint 也可能重新生成，須先確認成本。每個對話項目不要超過 1000 字，即使彈性分段超過目標亦然。離線測試不能當成真實合成或試聽證據；驗證成功不代表已授權付費執行。
 
 ## 驗證
 

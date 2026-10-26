@@ -72,6 +72,7 @@ class SynthesisConfig:
     speed: float
     sample_rate: int
     format: str
+    audio_config: Mapping[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -339,6 +340,35 @@ def load_settings(
     if not 0 < minimum <= target <= maximum:
         errors.append("segmentation range must satisfy 0 < min <= target <= max")
 
+    if provider_name != "voai_dialogue" and synthesis_raw.get("audio_config"):
+        errors.append("synthesis.audio_config is exclusive to voai_dialogue")
+    if provider_name == "voai_dialogue":
+        if not 0.5 <= speed <= 1.5:
+            errors.append("VoAI synthesis.speed must be between 0.5 and 1.5")
+        # 24000 is the documented Sota+ native rate, omitted from the
+        # Swagger header's generic list but specified in its model limits.
+        if sample_rate not in {8000, 16000, 24000, 32000, 44100}:
+            errors.append("VoAI synthesis.sample_rate is not a documented rate")
+        ceiling = {"Sota+": 24000, "Neo": 32000, "Classic": 44100}.get(model)
+        if ceiling is not None and sample_rate > ceiling:
+            errors.append("VoAI synthesis.sample_rate exceeds the model limit")
+        if audio_format.casefold() not in {"wav", "mp3"}:
+            errors.append("VoAI file output supports wav or mp3; raw pcm streaming is not supported by this CLI")
+        audio_config = synthesis_raw.get("audio_config", {})
+        if not isinstance(audio_config, dict):
+            errors.append("synthesis.audio_config must be an object")
+        else:
+            ranges = {"pitch_shift": (-5, 5), "breath_pause": (0, 10), "style_weight": (0, 1)}
+            for key, value in audio_config.items():
+                if key not in ranges:
+                    errors.append("synthesis.audio_config accepts only pitch_shift, breath_pause, style_weight; use synthesis.speed for speed")
+                    continue
+                lower, upper = ranges[key]
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not lower <= value <= upper:
+                    errors.append(f"synthesis.audio_config.{key} must be a number between {lower} and {upper}")
+                if key == "style_weight" and model != "Classic":
+                    errors.append("synthesis.audio_config.style_weight is supported only by Classic")
+
     mode = _string(output_raw.get("mode")) or "segments"
     if mode not in {"segments", "single", "both"}:
         errors.append("output.mode must be segments, single, or both")
@@ -373,6 +403,7 @@ def load_settings(
             speed=speed,
             sample_rate=sample_rate,
             format=audio_format.casefold(),
+            audio_config=dict(_mapping(synthesis_raw.get("audio_config"))),
         ),
         segmentation=SegmentationConfig(minimum, target, maximum),
         output=OutputConfig(output_path, mode, minimum_bytes),

@@ -1,37 +1,25 @@
 {
   "source": {
-    "path": "tests/fixtures/article.md",
-    "format": "markdown",
-    "section": {
-      "type": "heading",
-      "value": "Selected Section",
-      "level": 2,
-      "include_heading": true
-    },
+    "path": "tests/fixtures/voai-smoke.txt",
+    "format": "text",
+    "section": {"type": "all"},
     "include_code": false
   },
   "provider": {
     "name": "voai_dialogue",
-    "base_url": "https://api.example.test",
-    "credential_env": "TTS_API_KEY",
+    "base_url": "https://connect.voai.ai",
+    "endpoint": "/TTS/generate-dialogue",
+    "credential_env": "VOAI_API_KEY",
     "timeout_seconds": 180,
     "options": {}
   },
   "synthesis": {
-    "model": "replace-with-provider-model",
-    "voices": [
-      {
-        "name": "replace-with-voice-a",
-        "style": "neutral"
-      },
-      {
-        "name": "replace-with-voice-b",
-        "style": "warm"
-      }
-    ],
+    "model": "Sota+",
+    "voices": [{"name": "佑希", "style": "聊天"}],
     "speed": 1.0,
     "sample_rate": 24000,
-    "format": "mp3"
+    "format": "mp3",
+    "audio_config": {"pitch_shift": 0, "breath_pause": 0}
   },
   "segmentation": {
     "min_characters": 80,
