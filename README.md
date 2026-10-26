@@ -124,3 +124,7 @@ These describe the included adapters, not a guarantee that every service support
 ## Share safely
 
 Follow `SHARE_CHECKLIST.md`. Do not publish local configs, credentials, private source text, generated audio, account/quota details, or absolute machine paths. Output JSON includes source content, so review it before sharing too.
+
+## License
+
+Licensed under the [MIT License](LICENSE).

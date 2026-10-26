@@ -124,3 +124,7 @@ CLI 的範圍語法為 `all`、`heading:TITLE`、`markers:START::END` 或 `lines
 ## 安全分享
 
 請遵守 `SHARE_CHECKLIST.md`。不要發布本機設定、憑證、私密來源文字、生成音訊、帳戶／額度資訊或機器絕對路徑。輸出的 JSON 含有來源內容，分享前也須審閱。
+
+## 授權
+
+本專案採用 [MIT 授權條款](LICENSE)。
