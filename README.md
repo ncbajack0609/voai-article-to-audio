@@ -22,6 +22,15 @@ VoAI is the example default, **not an implicit CLI fallback**: a provider must b
 - For actual synthesis: network access, VoAI credentials, and valid service/model/voice settings.
 - For merging multiple segments in `single` or `both` mode: `ffmpeg` on `PATH`. The example uses `segments`, which needs no external media tool. A one-segment merged output is copied without `ffmpeg`.
 
+## Need a VoAI API key?
+
+1. Open [VoAI 聲音創造所](https://app.voai.ai/) in a desktop browser and register/sign in. See the [official account guide](https://user-guide.voai.ai/) for sign-in options.
+2. Open the account menu → **API Key 管理** (API Key Management) and create a key.
+3. For paid API usage, open **方案價格 → API 方案**, or the [API credit top-up page](https://app.voai.ai/api-topup), and purchase API generation credits. Creating a key and buying credits are separate steps; choose API credits rather than assuming a web subscription supplies API usage.
+4. Store the key locally via `TTS_API_KEY` or a protected credential file as described below. **Do not paste it into agent chat, JSON, documentation, or Git.** Keep `provider.name` set to `voai_dialogue` and confirm the remaining service settings before synthesis.
+
+Use the [official VoAI API page](https://www.voai.ai/api) for current onboarding, trial conditions, and pricing; offers and interface labels may change. You can run `--validate-only` without a key while completing setup. Registration, payment, and any chargeable synthesis remain under your control.
+
 ## Quick start
 
 Run these commands from the repository directory. Use your Python 3.11+ executable if it is named differently.

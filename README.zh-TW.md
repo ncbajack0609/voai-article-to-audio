@@ -22,6 +22,15 @@ VoAI 是範例設定的預設選擇，**不是 CLI 自動補上的供應商**：
 - 實際合成需要網路、VoAI 憑證，以及有效的服務、模型與聲線設定。
 - 使用 `single` 或 `both` 模式合併多個片段時，`PATH` 中須有 `ffmpeg`。範例採用 `segments`，不需要外部媒體工具；只有一個片段時，合併輸出直接複製檔案，不需 `ffmpeg`。
 
+## 還沒有 VoAI API Key？
+
+1. 用電腦瀏覽器開啟 [VoAI 聲音創造所](https://app.voai.ai/)，註冊／登入帳號；登入方式可參考[官方使用教學](https://user-guide.voai.ai/)。
+2. 開啟右上角會員選單 → **API Key 管理**，建立金鑰。
+3. 要付費使用 API，進入**方案價格 → API 方案**，或開啟 [API 點數儲值頁](https://app.voai.ai/api-topup)，購買 API 生成點數。建立金鑰與購買點數是兩個步驟；請選擇 API 點數，不要將網頁版訂閱視為 API 額度。
+4. 依下方說明，在本機透過 `TTS_API_KEY` 或受保護的憑證檔提供金鑰。**不要把金鑰貼進 agent 對話、JSON、文件或 Git。** 保留 `provider.name` 為 `voai_dialogue`，並在合成前確認其他服務設定。
+
+最新申請流程、試用條件與價格以 [VoAI 官方 API 頁](https://www.voai.ai/api)為準；優惠與介面名稱可能調整。設定期間可先執行 `--validate-only`，不需要金鑰。註冊、付款與可能計費的合成都由你決定是否進行。
+
 ## 快速開始
 
 請在儲存庫目錄中執行以下指令。若你的 Python 3.11+ 執行檔名稱不同，請替換指令中的 `python3`。

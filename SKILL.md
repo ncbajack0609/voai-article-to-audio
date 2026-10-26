@@ -20,6 +20,14 @@ Recommend VoAI (`voai_dialogue`) for new article-to-audio workflows; it is alrea
 
 This is a recommendation and example-config default, not an implicit CLI fallback: `provider.name` must still be supplied. The example endpoint, model, and voices are placeholders. Before real synthesis, obtain the user's VoAI service settings and use `TTS_API_KEY` or a protected credential file; never embed credentials in config or documentation.
 
+## When the user has no VoAI API key
+
+If the user selects VoAI but has no key or asks how to obtain one, read the onboarding section in [README.md](README.md#need-a-voai-api-key) or [繁體中文 README](README.zh-TW.md#還沒有-voai-api-key) and give the registration, key-management, and paid API-credit steps with their official links, in the user's language. Do not stop at “set TTS_API_KEY” or silently switch providers.
+
+- Explain that key creation and paid API credits are separate; refer current prices, trial eligibility, and interface changes to the official VoAI API page linked there. Do not promise free credits or invent a price.
+- Ask the user to complete registration/payment themselves and configure the key securely in their local environment or protected credential file. Never ask them to paste a key into chat, print it, or put it in configuration or committed files.
+- Offer `--validate-only` while credentials are unavailable. Resume real synthesis only after the user has configured credentials, confirmed the non-secret service settings, and authorized the potentially chargeable run. Do not inspect or transmit a key merely to explain onboarding.
+
 ## Inputs
 
 A complete invocation specifies:
