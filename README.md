@@ -24,7 +24,7 @@ VoAI is the example default, **not an implicit CLI fallback**: a provider must b
 
 ## Need a VoAI API key?
 
-1. Open [VoAI 聲音創造所](https://app.voai.ai/) in a desktop browser and register/sign in. See the [official account guide](https://user-guide.voai.ai/) for sign-in options.
+1. Open [VoAI 聲音創造所](https://app.voai.ai/) in a desktop browser and follow the site's registration/sign-in prompts.
 2. Open the account menu → **API Key 管理** (API Key Management) and create a key.
 3. For paid API usage, open **方案價格 → API 方案**, or the [API credit top-up page](https://app.voai.ai/api-topup), and purchase API generation credits. Creating a key and buying credits are separate steps; choose API credits rather than assuming a web subscription supplies API usage.
 4. Store the key locally via `TTS_API_KEY` or a protected credential file as described below. **Do not paste it into agent chat, JSON, documentation, or Git.** Keep `provider.name` set to `voai_dialogue` and confirm the remaining service settings before synthesis.

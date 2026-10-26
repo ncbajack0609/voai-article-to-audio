@@ -24,7 +24,7 @@ VoAI 是範例設定的預設選擇，**不是 CLI 自動補上的供應商**：
 
 ## 還沒有 VoAI API Key？
 
-1. 用電腦瀏覽器開啟 [VoAI 聲音創造所](https://app.voai.ai/)，註冊／登入帳號；登入方式可參考[官方使用教學](https://user-guide.voai.ai/)。
+1. 用電腦瀏覽器開啟 [VoAI 聲音創造所](https://app.voai.ai/)，依網站提示註冊／登入帳號。
 2. 開啟右上角會員選單 → **API Key 管理**，建立金鑰。
 3. 要付費使用 API，進入**方案價格 → API 方案**，或開啟 [API 點數儲值頁](https://app.voai.ai/api-topup)，購買 API 生成點數。建立金鑰與購買點數是兩個步驟；請選擇 API 點數，不要將網頁版訂閱視為 API 額度。
 4. 依下方說明，在本機透過 `TTS_API_KEY` 或受保護的憑證檔提供金鑰。**不要把金鑰貼進 agent 對話、JSON、文件或 Git。** 保留 `provider.name` 為 `voai_dialogue`，並在合成前確認其他服務設定。
