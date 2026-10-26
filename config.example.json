@@ -1,0 +1,46 @@
+{
+  "source": {
+    "path": "tests/fixtures/article.md",
+    "format": "markdown",
+    "section": {
+      "type": "heading",
+      "value": "Selected Section",
+      "level": 2,
+      "include_heading": true
+    },
+    "include_code": false
+  },
+  "provider": {
+    "name": "voai_dialogue",
+    "base_url": "https://api.example.test",
+    "credential_env": "TTS_API_KEY",
+    "timeout_seconds": 180,
+    "options": {}
+  },
+  "synthesis": {
+    "model": "replace-with-provider-model",
+    "voices": [
+      {
+        "name": "replace-with-voice-a",
+        "style": "neutral"
+      },
+      {
+        "name": "replace-with-voice-b",
+        "style": "warm"
+      }
+    ],
+    "speed": 1.0,
+    "sample_rate": 24000,
+    "format": "mp3"
+  },
+  "segmentation": {
+    "min_characters": 80,
+    "target_characters": 160,
+    "max_characters": 240
+  },
+  "output": {
+    "directory": "generated-audio",
+    "mode": "segments",
+    "minimum_bytes": 128
+  }
+}
