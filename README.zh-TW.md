@@ -1,93 +1,126 @@
-# 可攜式文章轉音訊 API Skill
+# Article to Audio — 用 VoAI API，讓文章變成可聆聽的內容
 
-> 可搭配公開的「繁中有聲書寫作 V2」（`audiobook-writing-skill-v2`）準備耳讀稿，再交由本套件轉為音訊。
+[English](README.md)
 
-一套獨立各agent通用、只使用 Python 標準函式庫的套件，可用來選取文章文字、依語意邊界分段、輪替使用一個或多個 voice、呼叫 TTS API，並產生可稽核的輸出。它不綁定作業系統、家目錄、文章、voice、model 或 agent framework。
+將文章、耳讀稿與指定章節，轉為可重複執行的音訊製作流程。這套可攜式 Python skill 能選取文字、依語意邊界分段、輪替指定聲線，並保存音訊與可追溯的處理紀錄。
 
-## 推薦供應商：VoAI API
+**推薦從 VoAI API 開始。** `voai_dialogue` 是本套件推薦的供應商，也是 `config.example.json` 的預設選擇。內建介接器會將每段文字連同聲線、風格、模型／版本與語速設定，送至 VoAI 對話語音端點；本套件則負責分段、進度保存與輸出整理。
 
-VoAI（`voai_dialogue`）是本套件推薦的供應商，也是 `config.example.json` 的預設選擇。為什麼用 VoAI？其對話語音 API 可串接朗讀文字、聲線與風格設定，再搭配本套件的語意分段與聲線輪替，建立文章轉音訊工作流程。
+## 為什麼使用這套工具？
 
-CLI 仍要求明確指定 provider，不會在設定缺漏時自動選取。`openai_speech` 保留為可選的相容 adapter。範例的 base URL、model 與 voices 都是 placeholder，不能直接用來連線合成。實際使用時請填入你的 VoAI 服務設定，並將憑證放在 `TTS_API_KEY` 或受保護的憑證檔，絕不寫入分享的設定檔。
+- **只朗讀你選的內容：** 整份文件、指定標題、標記之間的段落，或特定行號範圍。
+- **掌握旁白配置：** 全文使用同一聲線，或依清單順序在各段輪替聲線。
+- **讓製作過程可檢查：** 保留來源文字、分段邊界、聲線配置、請求摘要與完成狀態。
+- **接續已完成的工作：** 重用請求相符、且仍通過媒體檢查的已完成片段。
+- **融入既有工作流程：** 可獨立執行 CLI，也可搭配 agent；只需 Python 標準函式庫。
 
-## 需求
+VoAI 是範例設定的預設選擇，**不是 CLI 自動補上的供應商**：仍須在設定檔或 CLI 覆寫中明確指定。`openai_speech` 保留為可選的相容介接器，並非推薦的起始路徑。
 
-- Python 3.11 或更新版本
-- 只有實際合成時才需要網路連線
-- `single` 或 `both` 輸出模式可選用 `ffmpeg`；`segments` 不需要外部媒體工具
+## 執行需求
 
-不需要安裝任何 Python 套件。
+- Python 3.11 或更新版本，不需要執行 `pip install`。
+- 實際合成需要網路、VoAI 憑證，以及有效的服務、模型與聲線設定。
+- 使用 `single` 或 `both` 模式合併多個片段時，`PATH` 中須有 `ffmpeg`。範例採用 `segments`，不需要外部媒體工具；只有一個片段時，合併輸出直接複製檔案，不需 `ffmpeg`。
 
 ## 快速開始
 
-在本目錄中，先對隨附的公開 fixture 進行驗證；此步驟不需要憑證或網路連線：
+請在儲存庫目錄中執行以下指令。若你的 Python 3.11+ 執行檔名稱不同，請替換指令中的 `python3`。
 
-```text
-python scripts/article_to_audio.py --config config.example.json --validate-only
-python -m unittest discover -s tests -v
+### 1. 先試離線驗證
+
+```sh
+python3 scripts/article_to_audio.py --config config.example.json --validate-only
+python3 -m unittest discover -s tests -v
 ```
 
-將 `config.example.json` 複製成區域設定檔，變更 source/provider/model/voices，並設定所指定的憑證環境變數。接著執行：
+驗證會讀取隨附的公開文章測試檔並規劃分段，**不會**讀取憑證、呼叫 API、生成音訊或建立輸出目錄。成功結果包含 `"status": "valid"`；這不代表服務憑證、模型或聲線識別碼已通過線上驗證。
 
-```text
-python scripts/article_to_audio.py --config path/to/config.json
+### 2. 設定你的 VoAI 合成工作
+
+使用檔案管理員或 shell，將 `config.example.json` 複製為同一目錄下的 `config.json`。Git 已忽略 `config.json`。合成前請編輯以下設定：
+
+| 設定 | 填寫內容 |
+| --- | --- |
+| `provider.name` | 保留 `voai_dialogue`。 |
+| `provider.base_url` | 你的 VoAI 服務基底網址；範例網址只是佔位值。 |
+| `provider.credential_env` | 保留 `TTS_API_KEY`，這是環境變數的**名稱**，不是金鑰本身。 |
+| `synthesis.model` | 有效的 VoAI 模型／版本識別碼。 |
+| `synthesis.voices` | 服務支援的聲線名稱與風格；替換兩個範例聲線，或改用單一聲線。 |
+| `source.path` | UTF-8 Markdown 或純文字檔；`-` 代表從標準輸入讀取。 |
+| `source.section` | 朗讀全文時使用 `{"type": "all"}`；原範例只選取 `Selected Section` 標題。 |
+| `output.directory` | 輸出位置；範例為 `generated-audio`。 |
+
+請確認服務支援所選的語速、取樣率、格式與風格。相對來源路徑與輸出路徑均以**設定檔所在目錄**為基準，包含透過 CLI 覆寫的路徑。請保留明確的分段設定與輸出模式，或依需求調整。
+
+介接器預設會在 `provider.base_url` 後接上 `/TTS/generate-dialogue`；也可用 `provider.endpoint` 指定端點。不要在基底網址重複加入端點路徑。隨附的網址、模型與聲線名稱只是範例，不能直接用於服務連線與合成。
+
+### 3. 安全提供 `TTS_API_KEY`
+
+透過本機的機密管理方式，在啟動 Python 的 shell 或執行環境中設定名為 `TTS_API_KEY` 的環境變數。它的值是你的 VoAI API 憑證；請勿將實際值寫入 JSON、文件、指令範例或版本控制。
+
+CLI 會讀取 `provider.credential_env` 指定的環境變數，預設名稱為 `TTS_API_KEY`；**不會**自動載入 `.env` 檔案。執行 `--validate-only` 不需要金鑰。
+
+也可以指定既有、受保護的 UTF-8 憑證檔，檔案內容只放憑證：
+
+```sh
+python3 scripts/article_to_audio.py --config config.json --credential-file path/to/credential.txt
 ```
 
-或改用受保護的憑證檔：
+憑證檔優先於環境變數。在 POSIX 系統上，檔案不得開放群組或其他使用者的權限；其他系統請設定僅限使用者存取。不要將憑證檔放入分享內容。
 
-```text
-python scripts/article_to_audio.py --config path/to/config.json --credential-file path/to/credential.txt
+### 4. 驗證文章，再生成音訊
+
+設定環境變數並替換所有佔位值後，執行：
+
+```sh
+python3 scripts/article_to_audio.py --config config.json --validate-only
+python3 scripts/article_to_audio.py --config config.json
 ```
 
-在 POSIX 系統上，此檔案不得有群組或其他使用者的權限位元。其他系統請使用該平台僅限使用者的存取控制保護檔案。憑證檔優先於環境變數。
+第二個指令會將選取的文字傳送至設定的服務，可能產生 API 費用。沿用範例輸出設定時，音訊片段與報告會放在設定檔旁的 `generated-audio/` 目錄。
 
-## 必填設定
+## 選用搭配：audiobook-writing-skill-v2
 
-- `source.path`：UTF-8 Markdown／文字檔路徑，或 `-` 代表 stdin
-- `source.section`：`all`、`heading`、`markers` 或 `line_range`
-- `provider.name`：`voai_dialogue` 或 `openai_speech`
-- `provider.base_url`、可選的 `endpoint` 與 `credential_env`
-- `synthesis.model`、非空且依序排列的 `voices`、`speed`、`sample_rate` 與 `format`
-- `segmentation.min_characters`、`target_characters` 與 `max_characters`
-- `output.directory`、`mode` 與 `minimum_bytes`
+可先用 `audiobook-writing-skill-v2` 準備適合聆聽的稿件，審閱後存成 UTF-8 Markdown 或純文字檔，再交給本套件。流程是：**準備耳讀稿 → 審閱文字 → 用 VoAI API 合成 → 試聽檢查**。
 
-範圍、速度、sample rate、格式、三個分段限制與輸出模式，都必須在 config 或 CLI 覆寫中明確指定。CLI 不會將省略的決策悄悄轉為可重複套件的預設值。
+這是可選的檔案交接流程，不是必須安裝的依賴，也不是自動整合。本套件負責語音合成，不會代你改寫稿件。
 
-相對的來源與輸出路徑，會以 config 檔所在目錄為基準解析。分段限制是寬鬆條件：段落／句子／子句邊界的重要性高於精確字元目標。manifest 會記錄任何無法避免的例外。
+## 設定與 CLI 控制
 
-每個主要設定都有 CLI 覆寫選項：`--source`、`--section`、`--provider`、`--base-url`、`--model`、可重複使用的 `--voice NAME[:STYLE]`、`--speed`、`--sample-rate`、`--format`、`--segment-range MIN:TARGET:MAX`、`--output-dir` 與 `--output-mode`。逾時請求會被 checkpoint 為不確定狀態；只有在確認供應商用量，並接受可能重複計費後，才使用 `--retry-uncertain`。
+來源範圍、供應商、模型、聲線、語速、取樣率、格式、三個分段限制、輸出目錄與輸出模式，都須透過設定檔或支援的 CLI 覆寫明確提供。`source.section` 是物件，其 `type` 可為 `all`、`heading`、`markers` 或 `line_range`；選取特定範圍時須補上對應欄位。
 
-## 非互動式執行約定
+常用覆寫選項包括 `--source`、`--section`、`--provider`、`--base-url`、`--model`、可重複指定的 `--voice NAME[:STYLE]`、`--speed`、`--sample-rate`、`--format`、`--segment-range MIN:TARGET:MAX`、`--output-dir` 與 `--output-mode`。例如，驗證隨附測試文章的全文，而非只有範例指定的標題：
 
-`--validate-only` 會進行 config 驗證、來源擷取與分段，但不讀取憑證、不發出請求，也不建立輸出目錄。無效輸入會以結束碼 2 離開，並輸出 JSON：
-
-```json
-{"status":"configuration_error","missing_parameters":["source.path"],"validation_errors":[]}
+```sh
+python3 scripts/article_to_audio.py --config config.example.json --section all --validate-only
+python3 scripts/article_to_audio.py --help
 ```
 
-互動式 agent 應只對尚未決定的事項提出精簡問題。完整且有效的 config 應能執行，不應反覆提問。
+CLI 的範圍語法為 `all`、`heading:TITLE`、`markers:START::END` 或 `lines:START:END`。分段限制是彈性目標：段落、句子與子句邊界優先於精確字元數；例外會記錄在 manifest 中。
 
-## 供應商 adapter
+設定錯誤會以結束碼 2 回傳 JSON，包含 `status`、`missing_parameters` 與 `validation_errors`。逾時請求會保存為不確定狀態；只有在查核供應商用量，並接受可能重複計費的風險後，才使用 `--retry-uncertain`。
 
-`scripts/article_audio/providers.py` 包含一個精簡、標準化的 `SynthesisRequest`，以及兩個獨立 adapter：
+## 輸出與品質檢查
 
-- `voai_dialogue`：單項目 `/TTS/generate-dialogue` 請求，使用格式／sample-rate headers；
-- `openai_speech`：OpenAI 相容的 `/v1/audio/speech` 請求，可選擇使用 style instructions。
+| 輸出 | 用途 |
+| --- | --- |
+| `normalized-source.json` | 選取文字、來源行號範圍與 SHA-256。 |
+| `segments-manifest.json` | 文字範圍、邊界、聲線／風格、請求摘要、檔案與狀態。 |
+| `segments/` | 各段音訊，以及可供接續執行的已完成片段。 |
+| `article-audio.<format>` | `single` 或 `both` 模式的合併音訊；兩種模式都會保留片段檔案。 |
+| `run-report.json` | 不含憑證的完成摘要。 |
 
-若 OpenAI 相容伺服器接受 sample-rate header，請設定 `provider.options.sample_rate_header`。否則，所要求的 sample rate 仍是必須驗證的預期輸出限制；實際供應商行為具有優先權。
+內建檢查涵蓋最小檔案大小與常見 WAV／MP3／Ogg／FLAC 簽章，不代表已完整解碼或確認聆聽品質。發布前，請用解碼／媒體探測工具檢查，並試聽發音、語速與轉場。切換服務時請使用不同輸出目錄：續跑比對的摘要描述合成請求，不包含供應商網址。
 
-如需支援其他 API，請實作 `TTSProvider.synthesize(request)`，並在 `build_provider` 中註冊。不要將網路相關知識加入 `source.py`、`segment.py` 或 `pipeline.py`。
+## 介接器細節
 
-## 輸出
+`scripts/article_audio/providers.py` 將 API 行為與來源擷取、分段邏輯分開：
 
-- `normalized-source.json`：選取文字、來源行號範圍與 SHA-256
-- `segments-manifest.json`：精確文字範圍、語意邊界、voice/style、request digests、檔案、位元組與狀態
-- `segments/`：checkpoint 媒體；只有 request digests 與媒體檢查仍相符時才會重複利用
-- `article-audio.<format>`：可選的合併輸出
-- `run-report.json`：不含憑證的供應商／model／輸出摘要
+- `voai_dialogue`：每次請求送出一個對話項目；預設使用 `x-api-key` 傳遞憑證，並附上 `x-output-format` 與 `x-sample-rate` 標頭。
+- `openai_speech`：可選的 OpenAI 相容 `/v1/audio/speech` 介接器，支援傳送風格指示。僅在伺服器支援時設定 `provider.options.sample_rate_header`；否則此介接器不會傳送要求的取樣率。
 
-內建媒體檢查涵蓋檔案大小，以及常見的 WAV／MP3／Ogg／FLAC 簽章。交付前，請使用可用的 decoder／probe，並由人工聆聽發音、語速、風格與轉場。
+以上描述的是套件內建介接器，不保證每個服務都支援每項設定。付費執行前請確認你的服務規格。
 
-## 分享
+## 安全分享
 
-請遵守 `SHARE_CHECKLIST.md`。套件不得包含區域 config、憑證、私密來源、生成音訊、帳戶／額度細節或機器絕對路徑。
+請遵守 `SHARE_CHECKLIST.md`。不要發布本機設定、憑證、私密來源文字、生成音訊、帳戶／額度資訊或機器絕對路徑。輸出的 JSON 含有來源內容，分享前也須審閱。

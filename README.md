@@ -1,91 +1,126 @@
-# Portable Article-to-Audio API Skill
+# Article to Audio — powered by VoAI API
 
-A standalone, standard-library Python package for selecting article text, segmenting it at semantic boundaries, rotating one or more voices, calling a TTS API, and writing auditable output. It is not tied to an operating system, home directory, article, voice, model, or agent framework.
+[繁體中文](README.zh-TW.md)
 
-## Recommended provider: VoAI API
+Turn articles, listening scripts, and selected chapters into a repeatable audio-production workflow. This portable Python skill selects your text, splits it at semantic boundaries, rotates configured voices, and saves audio with a traceable manifest.
 
-VoAI (`voai_dialogue`) is the recommended provider and the default selection in `config.example.json`. Why VoAI? Its dialogue API connects narration text with voice and style settings; this package adds semantic segmentation and voice rotation for article-to-audio workflows.
+**Start with VoAI API.** `voai_dialogue` is the recommended provider and the default selection in `config.example.json`. The included adapter connects each text segment to VoAI's dialogue endpoint with voice, style, model/version, and speed settings. The package handles segmentation, checkpoints, and output organization around those requests.
 
-The CLI still requires an explicit provider; it does not silently select one when configuration is missing. `openai_speech` remains an optional compatibility adapter. The example base URL, model, and voices are placeholders, not a working service configuration. For real synthesis, supply your VoAI service settings and keep the credential in `TTS_API_KEY` or a protected credential file—never in shared configuration.
+## Why use it?
+
+- **Read exactly what you choose:** a whole document, a heading, a marker-delimited passage, or a line range.
+- **Keep control of narration:** use one voice throughout or rotate an ordered list of voices across segments.
+- **Make runs inspectable:** retain source text, segment boundaries, voice assignments, request digests, and completion status.
+- **Resume completed work:** reuse matching completed segments that still pass media checks.
+- **Fit your workflow:** run the standalone CLI or use it with an agent; no Python dependencies beyond the standard library.
+
+VoAI is the example default, **not an implicit CLI fallback**: a provider must be specified in the config or a CLI override. `openai_speech` is an optional compatibility adapter, not the recommended starting path.
 
 ## Requirements
 
-- Python 3.11 or newer
-- Network access only for real synthesis
-- Optional `ffmpeg` for `single` or `both` output; `segments` needs no external media tool
-
-No Python packages need to be installed.
+- Python 3.11 or newer; no `pip install` step.
+- For actual synthesis: network access, VoAI credentials, and valid service/model/voice settings.
+- For merging multiple segments in `single` or `both` mode: `ffmpeg` on `PATH`. The example uses `segments`, which needs no external media tool. A one-segment merged output is copied without `ffmpeg`.
 
 ## Quick start
 
-From this directory, first validate the included public fixture without credentials or network access:
+Run these commands from the repository directory. Use your Python 3.11+ executable if it is named differently.
 
-```text
-python scripts/article_to_audio.py --config config.example.json --validate-only
-python -m unittest discover -s tests -v
+### 1. Try the offline validation
+
+```sh
+python3 scripts/article_to_audio.py --config config.example.json --validate-only
+python3 -m unittest discover -s tests -v
 ```
 
-Copy `config.example.json` to a local config, change the source/provider/model/voices, and set the named credential environment variable. Then run:
+Validation reads the included public article fixture and plans its segments. It does **not** read credentials, call an API, create audio, or create an output directory. A successful result contains `"status": "valid"`; it does not prove that service credentials or model/voice identifiers work.
 
-```text
-python scripts/article_to_audio.py --config path/to/config.json
+### 2. Configure your VoAI run
+
+Copy `config.example.json` to `config.json` in the same directory using your file manager or shell. `config.json` is ignored by Git. Edit it before synthesis:
+
+| Setting | What to use |
+| --- | --- |
+| `provider.name` | Keep `voai_dialogue`. |
+| `provider.base_url` | Your VoAI service base URL; the example URL is a placeholder. |
+| `provider.credential_env` | Keep `TTS_API_KEY`, the **name** of the environment variable, not the key itself. |
+| `synthesis.model` | A valid VoAI model/version identifier. |
+| `synthesis.voices` | Your supported voice names and styles; replace both placeholder voices, or use one voice. |
+| `source.path` | Your UTF-8 Markdown or text file; `-` reads standard input. |
+| `source.section` | For the whole document, use `{"type": "all"}`. The example instead selects the heading `Selected Section`. |
+| `output.directory` | Your destination; the example uses `generated-audio`. |
+
+Confirm that speed, sample rate, format, and styles are supported by your service. Relative source and output paths resolve from the **config file's directory**, including paths supplied through CLI overrides. Keep the explicit segmentation settings and output mode, or adjust them intentionally.
+
+The adapter appends `/TTS/generate-dialogue` to `provider.base_url` unless you supply `provider.endpoint`. Do not duplicate that endpoint in the base URL. The supplied URL, model, and voice names are examples—not working service credentials or identifiers.
+
+### 3. Provide `TTS_API_KEY` securely
+
+Set an environment variable named `TTS_API_KEY` in the shell or runtime that launches Python, using your local secret-management mechanism. Its value is your VoAI API credential; do not put that value in JSON, documentation, command examples, or version control.
+
+The CLI reads the variable named by `provider.credential_env` (which defaults to `TTS_API_KEY`). It does **not** automatically load `.env` files. No key is needed for `--validate-only`.
+
+Alternatively, pass an existing protected UTF-8 file containing only the credential:
+
+```sh
+python3 scripts/article_to_audio.py --config config.json --credential-file path/to/credential.txt
 ```
 
-Or use a protected credential file:
+A credential file takes precedence over the environment variable. On POSIX it must have no group/other permission bits; on other systems, apply user-only access controls. Keep it outside shared files.
 
-```text
-python scripts/article_to_audio.py --config path/to/config.json --credential-file path/to/credential.txt
+### 4. Validate your article, then generate audio
+
+With the environment variable configured and all placeholders replaced:
+
+```sh
+python3 scripts/article_to_audio.py --config config.json --validate-only
+python3 scripts/article_to_audio.py --config config.json
 ```
 
-On POSIX the file must have no group/other permission bits. On other systems protect it using the platform's user-only access controls. The credential file takes precedence over the environment variable.
+The second command sends the selected text to the configured service and may incur API charges. With the example output settings, audio segments and reports go into `generated-audio/` beside the config file.
 
-## Required configuration
+## Optional pairing: audiobook-writing-skill-v2
 
-- `source.path`: UTF-8 Markdown/text path, or `-` for stdin
-- `source.section`: `all`, `heading`, `markers`, or `line_range`
-- `provider.name`: `voai_dialogue` or `openai_speech`
-- `provider.base_url`, optional `endpoint`, and `credential_env`
-- `synthesis.model`, non-empty ordered `voices`, `speed`, `sample_rate`, and `format`
-- `segmentation.min_characters`, `target_characters`, and `max_characters`
-- `output.directory`, `mode`, and `minimum_bytes`
+Use `audiobook-writing-skill-v2` to prepare a listening-oriented manuscript, then save the reviewed script as UTF-8 Markdown or text and pass it to this skill. The workflow is simple: **prepare the script → review the wording → synthesize with VoAI API → listen and check**.
 
-Scope, speed, sample rate, format, all three segment limits, and output mode must be explicit in config or CLI overrides. The CLI does not silently turn an omitted decision into a reusable-package default.
+This is an optional file-based handoff, not an installed dependency or an automatic integration. This package handles synthesis; it does not rewrite the manuscript for you.
 
-Relative source and output paths resolve from the config file's directory. Segment limits are soft: paragraph/sentence/clause boundaries outrank exact character targets. The manifest records any unavoidable exception.
+## Configuration and CLI controls
 
-Every main setting has a CLI override: `--source`, `--section`, `--provider`, `--base-url`, `--model`, repeated `--voice NAME[:STYLE]`, `--speed`, `--sample-rate`, `--format`, `--segment-range MIN:TARGET:MAX`, `--output-dir`, and `--output-mode`. A timed-out request is checkpointed as uncertain; only use `--retry-uncertain` after checking provider usage and deciding that a possible duplicate charge is acceptable.
+Source scope, provider, model, voices, speed, sample rate, format, all three segment limits, output directory, and output mode must be supplied explicitly in configuration or supported CLI overrides. `source.section` is an object whose `type` is `all`, `heading`, `markers`, or `line_range`; scoped selectors need their corresponding fields.
 
-## Non-interactive contract
+Useful overrides include `--source`, `--section`, `--provider`, `--base-url`, `--model`, repeated `--voice NAME[:STYLE]`, `--speed`, `--sample-rate`, `--format`, `--segment-range MIN:TARGET:MAX`, `--output-dir`, and `--output-mode`. For example, validate the entire included fixture rather than only its selected heading:
 
-`--validate-only` performs config validation, source extraction, and segmentation, but reads no credential, makes no request, and creates no output directory. Invalid input exits with code 2 and JSON:
-
-```json
-{"status":"configuration_error","missing_parameters":["source.path"],"validation_errors":[]}
+```sh
+python3 scripts/article_to_audio.py --config config.example.json --section all --validate-only
+python3 scripts/article_to_audio.py --help
 ```
 
-An interactive agent should ask concise questions only for those unresolved decisions. A complete valid config should run without repetitive questions.
+CLI section syntax is `all`, `heading:TITLE`, `markers:START::END`, or `lines:START:END`. Segment limits are soft: paragraph, sentence, and clause boundaries take priority over exact character targets; exceptions are recorded in the manifest.
 
-## Provider adapters
+Configuration errors return exit code 2 with JSON fields `status`, `missing_parameters`, and `validation_errors`. A timed-out request is checkpointed as uncertain. Only use `--retry-uncertain` after checking provider usage and accepting the risk of a duplicate charge.
 
-`scripts/article_audio/providers.py` contains a small canonical `SynthesisRequest` and two independent adapters:
+## Outputs and quality checks
 
-- `voai_dialogue`: one-item `/TTS/generate-dialogue` requests with format/sample-rate headers;
-- `openai_speech`: OpenAI-compatible `/v1/audio/speech` requests, with optional style instructions.
+| Output | Purpose |
+| --- | --- |
+| `normalized-source.json` | Selected text, source line range, and SHA-256. |
+| `segments-manifest.json` | Text spans, boundaries, voices/styles, request digests, files, and statuses. |
+| `segments/` | Individual audio files and resumable completed work. |
+| `article-audio.<format>` | Merged output in `single` or `both` mode; segment files are retained in either mode. |
+| `run-report.json` | Completion summary without credentials. |
 
-For OpenAI-compatible servers that accept a sample-rate header, set `provider.options.sample_rate_header`. Otherwise the requested sample rate remains a desired output constraint that must be verified; provider behavior wins.
+Built-in checks cover minimum file size and common WAV/MP3/Ogg/FLAC signatures, not full decoding or listening quality. Verify audio with a decoder/probe and listen for pronunciation, pacing, and transitions before publishing. Use a separate output directory when switching services: resume digests describe synthesis requests, not the provider URL.
 
-To support another API, implement `TTSProvider.synthesize(request)` and register it in `build_provider`. Do not add network knowledge to `source.py`, `segment.py`, or `pipeline.py`.
+## Adapter details
 
-## Outputs
+`scripts/article_audio/providers.py` keeps API-specific behavior separate from source extraction and segmentation:
 
-- `normalized-source.json`: selected text, source line range, and SHA-256
-- `segments-manifest.json`: exact text spans, semantic boundaries, voice/style, request digests, files, bytes, and statuses
-- `segments/`: checkpointed media, reused only when request digests and media checks still match
-- `article-audio.<format>`: optional merged output
-- `run-report.json`: provider/model/output summary without credentials
+- `voai_dialogue`: one dialogue item per request; sends the credential in `x-api-key` by default, with `x-output-format` and `x-sample-rate` headers.
+- `openai_speech`: optional OpenAI-compatible `/v1/audio/speech` adapter with style instructions. Set `provider.options.sample_rate_header` only if your server supports it; otherwise the requested sample rate is not sent by this adapter.
 
-Built-in media checks cover size and common WAV/MP3/Ogg/FLAC signatures. Before delivery, use an available decoder/probe and human listening for pronunciation, pacing, style, and transitions.
+These describe the included adapters, not a guarantee that every service supports every setting. Confirm your service contract before a paid run.
 
-## Sharing
+## Share safely
 
-Follow `SHARE_CHECKLIST.md`. The package must not include local configs, credentials, private sources, generated audio, account/quota details, or absolute machine paths.
+Follow `SHARE_CHECKLIST.md`. Do not publish local configs, credentials, private source text, generated audio, account/quota details, or absolute machine paths. Output JSON includes source content, so review it before sharing too.
